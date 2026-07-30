@@ -1,12 +1,14 @@
-# E-Pharma Management System — Backend (Phase 2)
+# E-Pharma Management System — Backend (Phase 2 + Phase 3)
 
-FastAPI backend covering Phase 2 scope: authentication, authorization (RBAC), and
-Patient / Doctor / Pharmacy profile management. Medicine ordering, appointments,
-notifications, and payments are out of scope for this phase.
+FastAPI backend covering:
+- **Phase 2**: authentication, authorization (RBAC), Patient / Doctor / Pharmacy profile management
+- **Phase 3**: medicine search, prescription upload, medicine ordering, inventory management, order tracking
+
+Appointments, notifications, and payments are out of scope for these phases.
 
 ## Stack
 - Python 3.11+, FastAPI, SQLAlchemy 2.x, Alembic, PostgreSQL
-- JWT auth (`python-jose`), password hashing (`passlib[bcrypt]`)
+- JWT auth (`python-jose`), password hashing (`bcrypt`)
 - Tests: `pytest` + FastAPI `TestClient` against an in-memory SQLite DB
 
 ## Setup
@@ -57,3 +59,27 @@ PostgreSQL instance.
 Note: admin registration is currently open via `/auth/register` for development
 convenience. Before production deployment, lock this down (e.g. seed the first admin
 directly in the database and remove `admin` from the public registration role choices).
+
+## Medicine & order model (Phase 3)
+
+- `GET /api/v1/medicines`, `GET /api/v1/medicines/{id}` — public, no auth required.
+- `POST /api/v1/medicines`, `PUT /api/v1/medicines/{id}` — Pharmacy-only, and the
+  pharmacy must be Admin-approved (`is_approved=True`) to create medicines.
+- `POST /api/v1/prescriptions`, `GET /api/v1/prescriptions/me` — Patient-only.
+  `file_url` is a plain string reference (same convention as doctor/pharmacy license
+  URLs) — there is no real file-upload endpoint yet.
+- `POST /api/v1/orders` — Patient-only. Validates: target pharmacy is approved, the
+  prescription (if given) belongs to the caller, each medicine belongs to the target
+  pharmacy and has sufficient stock, prescription-required medicines have a
+  prescription attached, and delivery orders have a delivery address. Stock is
+  decremented and `total_amount` is computed server-side.
+- `GET /api/v1/orders/me` (patient), `GET /api/v1/orders/pharmacy/me` (pharmacy),
+  `GET /api/v1/orders/{id}` (owner or admin).
+- `PATCH /api/v1/orders/{id}/status` — Pharmacy owner or Admin only. Valid transitions:
+  `pending → preparing/cancelled`, `preparing → shipped/ready_for_pickup/cancelled`,
+  `shipped|ready_for_pickup → delivered`. Cancelling from `pending`/`preparing`
+  restocks the reserved quantities.
+
+`PharmacyProfile` now exposes its own `id` (the business-entity id used as
+`pharmacy_id` elsewhere) — patients/pharmacies pick this up from `GET /pharmacies/me`
+or from `Medicine.pharmacy_id` in search results.

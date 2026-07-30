@@ -19,6 +19,7 @@ def _get_pharmacy_or_404(db: Session, user_id: int) -> Pharmacy:
 
 def _to_profile(pharmacy: Pharmacy) -> PharmacyProfile:
     return PharmacyProfile(
+        id=pharmacy.id,
         store_name=pharmacy.store_name,
         license_number=pharmacy.license_number,
         drug_license_url=pharmacy.drug_license_url,
