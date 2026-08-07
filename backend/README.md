@@ -1,10 +1,11 @@
-# E-Pharma Management System — Backend (Phase 2 + Phase 3)
+# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4)
 
 FastAPI backend covering:
 - **Phase 2**: authentication, authorization (RBAC), Patient / Doctor / Pharmacy profile management
 - **Phase 3**: medicine search, prescription upload, medicine ordering, inventory management, order tracking
+- **Phase 4**: doctor availability, appointment booking, chat/video consultation, e-prescriptions
 
-Appointments, notifications, and payments are out of scope for these phases.
+Notifications and payments are out of scope for these phases.
 
 ## Stack
 - Python 3.11+, FastAPI, SQLAlchemy 2.x, Alembic, PostgreSQL
@@ -83,3 +84,36 @@ directly in the database and remove `admin` from the public registration role ch
 `PharmacyProfile` now exposes its own `id` (the business-entity id used as
 `pharmacy_id` elsewhere) — patients/pharmacies pick this up from `GET /pharmacies/me`
 or from `Medicine.pharmacy_id` in search results.
+
+## Appointment & consultation model (Phase 4)
+
+- `POST /api/v1/doctors/availability-slots` — Doctor-only. Rejects `start_time >=
+  end_time`, past start times, and overlaps with the doctor's existing slots.
+- `GET /api/v1/doctors/{doctor_id}/availability-slots?available_only=true` — public;
+  defaults to unbooked, future slots only.
+- `DELETE /api/v1/doctors/availability-slots/{slot_id}` — Doctor-only, ownership-checked;
+  rejects deleting an already-booked slot.
+- `POST /api/v1/appointments` — Patient-only. Validates the doctor is approved, the slot
+  belongs to that doctor, is unbooked, and is in the future. Books the slot and creates
+  the appointment (`status=pending`) in one transaction.
+- `GET /api/v1/appointments/me` (patient), `GET /api/v1/appointments/doctor/me` (doctor),
+  `GET /api/v1/appointments/{id}` (owner or admin).
+- `PATCH /api/v1/appointments/{id}/status` — Doctor may set `confirmed`/`rejected`/
+  `completed` (own appointments only); Patient may set `cancelled` (own appointments
+  only); Admin may set any valid transition. Valid transitions: `pending →
+  confirmed/rejected/cancelled`, `confirmed → completed/cancelled`. Rejecting or
+  cancelling frees the slot. The doctor can attach a `meeting_url` in the same request
+  when confirming a video appointment.
+- `POST /api/v1/appointments/{id}/messages`, `GET /api/v1/appointments/{id}/messages` —
+  participant-only (the patient or doctor on that appointment), and only once the
+  appointment is `confirmed`. This is simple REST-persisted chat, not real-time
+  (no WebSocket) — sufficient for chat-mode consultations; video-mode uses the
+  external `meeting_url` instead of in-app video infra.
+- `POST /api/v1/appointments/{id}/prescription` — Doctor-only, must be the appointment's
+  doctor, appointment must be `confirmed` or `completed`. Reuses Phase 3's `Prescription`
+  model (now with `appointment_id`/`issued_by_doctor_id`), so an issued e-prescription is
+  immediately visible via the existing `GET /api/v1/prescriptions/me` and usable as
+  `prescription_id` in `POST /orders` — no separate consumption endpoint was needed.
+
+`DoctorProfile` now exposes its own `id` too (same fix as `PharmacyProfile.id` in
+Phase 3), since patients need `doctor_id` to list slots and book appointments.

@@ -15,4 +15,6 @@ class PrescriptionResponse(BaseModel):
     patient_id: int
     file_url: str
     notes: str | None
+    appointment_id: int | None = None
+    issued_by_doctor_id: int | None = None
     uploaded_at: datetime

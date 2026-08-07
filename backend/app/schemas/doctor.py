@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 class DoctorProfile(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: int
     full_name: str | None = None
     qualification: str | None = None
     specialization: str | None = None

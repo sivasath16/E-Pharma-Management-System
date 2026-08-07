@@ -7,7 +7,19 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models import Doctor, Medicine, Order, OrderItem, Patient, Pharmacy, Prescription, User  # noqa: F401
+from app.models import (  # noqa: F401
+    Appointment,
+    ConsultationMessage,
+    Doctor,
+    DoctorAvailabilitySlot,
+    Medicine,
+    Order,
+    OrderItem,
+    Patient,
+    Pharmacy,
+    Prescription,
+    User,
+)
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
@@ -72,3 +84,12 @@ def approved_pharmacy_token(client, email="pharm@example.com", password="secret1
     pharmacy_user_id = user_id_from_token(pharm_token)
     client.post(f"/api/v1/pharmacies/{pharmacy_user_id}/approve", headers=auth_header(admin_token))
     return pharm_token
+
+
+def approved_doctor_token(client, email="doc@example.com", password="secret123", full_name="Dr. Who"):
+    """Register a doctor, register+login an admin, approve the doctor, return the doctor's token."""
+    doc_token = token_for(client, email, password, "doctor", full_name=full_name)
+    admin_token = token_for(client, f"admin-{email}", "adminpass1", "admin")
+    doctor_user_id = user_id_from_token(doc_token)
+    client.post(f"/api/v1/doctors/{doctor_user_id}/approve", headers=auth_header(admin_token))
+    return doc_token
