@@ -1,9 +1,10 @@
-# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4)
+# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4 + Phase 5)
 
 FastAPI backend covering:
 - **Phase 2**: authentication, authorization (RBAC), Patient / Doctor / Pharmacy profile management
 - **Phase 3**: medicine search, prescription upload, medicine ordering, inventory management, order tracking
 - **Phase 4**: doctor availability, appointment booking, chat/video consultation, e-prescriptions
+- **Phase 5**: admin user management, order/appointment monitoring, document verification, reports
 
 Notifications and payments are out of scope for these phases.
 
@@ -117,3 +118,49 @@ or from `Medicine.pharmacy_id` in search results.
 
 `DoctorProfile` now exposes its own `id` too (same fix as `PharmacyProfile.id` in
 Phase 3), since patients need `doctor_id` to list slots and book appointments.
+
+## Admin dashboard (Phase 5)
+
+All endpoints under `/api/v1/admin` are Admin-only. No new tables were needed — this
+phase is read/aggregate access over existing data, plus one write on the existing
+`User.is_active` field (already enforced: `get_current_user` rejects inactive users,
+and login itself returns 403 for an inactive account).
+
+- `GET /api/v1/admin/users?role=&is_active=&is_approved=&skip=0&limit=50` — filtered,
+  paginated user list.
+- `GET /api/v1/admin/users/{user_id}` — single user detail.
+- `PATCH /api/v1/admin/users/{user_id}/status` — body `{"is_active": bool}`. An admin
+  cannot deactivate their own account (400).
+- `GET /api/v1/admin/pending-approvals` — doctors/pharmacies awaiting approval, as a
+  single oversight view; the approve action itself stays on the existing
+  `POST /doctors/{user_id}/approve` / `POST /pharmacies/{user_id}/approve` endpoints.
+- `GET /api/v1/admin/orders?status=&skip=0&limit=50` — all orders across every
+  pharmacy (reuses `orders._to_response`).
+- `GET /api/v1/admin/appointments?status=&skip=0&limit=50` — all appointments across
+  every doctor (reuses `appointments._to_response`).
+- `GET /api/v1/admin/reports/summary` — `users_by_role`, `pending_approvals_count`,
+  `orders_by_status`, `total_revenue` (sum of `total_amount` for `delivered` orders),
+  `appointments_by_status`.
+
+Note: pagination here is scoped to these new admin endpoints only. Broader query/index
+optimization is deferred to Phase 7 (Performance Optimization & Security).
+
+## Frontend integration additions (Frontend Phase 1)
+
+Small additions made to support the new `frontend/` app (see its own README):
+
+- `GET /api/v1/auth/me` — returns the current authenticated user's `UserResponse`
+  (email, role, `is_active`, `is_approved`). Previously there was no way for any
+  client to fetch its own account info — the role-specific `/me` endpoints only
+  return profile fields, never email, and Admin has no profile table at all.
+- `GET /api/v1/doctors` — public list of **approved** doctors, filterable by
+  `specialization`, paginated. `GET /api/v1/doctors/{doctor_id}` — public single-doctor
+  detail (404 if missing or unapproved). Previously there was no way to discover a
+  doctor's id at all unless you already had it.
+- `GET /api/v1/pharmacies` — public list of **approved** pharmacies, paginated. Same
+  motivation as above, for the "choose a pharmacy" flow.
+- **CORS**: `app/main.py` now adds `CORSMiddleware`, allowed origins configured via
+  `settings.cors_origins` (defaults to the Vite dev server on `localhost:5173`/
+  `127.0.0.1:5173`). Without this, every browser-based frontend request was silently
+  blocked by the browser's CORS preflight check — found by actually running the
+  frontend against the API for the first time.

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_role
@@ -34,12 +34,34 @@ def _to_profile(doctor: Doctor) -> DoctorProfile:
     )
 
 
+@router.get("", response_model=list[DoctorProfile])
+def list_doctors(
+    specialization: str | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Doctor).join(User, Doctor.user_id == User.id).filter(User.is_approved.is_(True))
+    if specialization:
+        query = query.filter(Doctor.specialization.ilike(f"%{specialization}%"))
+    doctors = query.order_by(Doctor.id).offset(skip).limit(limit).all()
+    return [_to_profile(d) for d in doctors]
+
+
 @router.get("/me", response_model=DoctorProfile)
 def get_my_profile(
     current_user: User = Depends(require_role(UserRole.doctor)),
     db: Session = Depends(get_db),
 ):
     doctor = _get_doctor_or_404(db, current_user.id)
+    return _to_profile(doctor)
+
+
+@router.get("/{doctor_id}", response_model=DoctorProfile)
+def get_doctor(doctor_id: int, db: Session = Depends(get_db)):
+    doctor = db.get(Doctor, doctor_id)
+    if doctor is None or not doctor.user.is_approved:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
     return _to_profile(doctor)
 
 

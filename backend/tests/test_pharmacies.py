@@ -46,6 +46,27 @@ def test_admin_can_approve_pharmacy(client):
     assert response.json()["is_approved"] is True
 
 
+def test_public_pharmacy_list_excludes_unapproved(client):
+    unapproved_token = _token(
+        client, "unapproved@example.com", "secret123", "pharmacy", store_name="Hidden Pharmacy"
+    )
+
+    approved_token = _token(
+        client, "approved@example.com", "secret123", "pharmacy", store_name="Visible Pharmacy"
+    )
+    admin_token = _token(client, "admin5@example.com", "secret123", "admin")
+    client.post(
+        f"/api/v1/pharmacies/{_user_id_from_token(approved_token)}/approve",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+
+    response = client.get("/api/v1/pharmacies")
+    assert response.status_code == 200
+    names = [p["store_name"] for p in response.json()]
+    assert "Visible Pharmacy" in names
+    assert "Hidden Pharmacy" not in names
+
+
 def test_update_own_pharmacy_profile(client):
     token = _token(client, "pharm4@example.com", "secret123", "pharmacy")
     response = client.put(

@@ -1,4 +1,4 @@
-from tests.conftest import login_user, register_user
+from tests.conftest import auth_header, login_user, register_user
 
 
 def test_register_patient_is_auto_approved(client):
@@ -33,4 +33,19 @@ def test_login_success(client):
 def test_login_wrong_password(client):
     register_user(client, "wrongpw@example.com", "secret123", "patient")
     response = login_user(client, "wrongpw@example.com", "not-the-password")
+    assert response.status_code == 401
+
+
+def test_get_me_returns_current_user(client):
+    register_user(client, "me@example.com", "secret123", "patient")
+    token = login_user(client, "me@example.com", "secret123").json()["access_token"]
+    response = client.get("/api/v1/auth/me", headers=auth_header(token))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["email"] == "me@example.com"
+    assert body["role"] == "patient"
+
+
+def test_get_me_requires_auth(client):
+    response = client.get("/api/v1/auth/me")
     assert response.status_code == 401

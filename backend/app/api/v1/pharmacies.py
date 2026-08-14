@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_role
@@ -27,6 +27,24 @@ def _to_profile(pharmacy: Pharmacy) -> PharmacyProfile:
         address=pharmacy.address,
         is_approved=pharmacy.user.is_approved,
     )
+
+
+@router.get("", response_model=list[PharmacyProfile])
+def list_pharmacies(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    pharmacies = (
+        db.query(Pharmacy)
+        .join(User, Pharmacy.user_id == User.id)
+        .filter(User.is_approved.is_(True))
+        .order_by(Pharmacy.id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return [_to_profile(p) for p in pharmacies]
 
 
 @router.get("/me", response_model=PharmacyProfile)
