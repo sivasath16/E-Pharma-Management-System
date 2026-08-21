@@ -9,10 +9,12 @@ from app.core.deps import get_current_user, require_role
 from app.db.session import get_db
 from app.models.medicine import Medicine
 from app.models.order import FulfillmentType, Order, OrderItem, OrderStatus
+from app.models.payment import Payment, PaymentStatus
 from app.models.pharmacy import Pharmacy
 from app.models.prescription import Prescription
 from app.models.user import User, UserRole
 from app.schemas.order import OrderCreate, OrderItemResponse, OrderResponse, OrderStatusUpdate
+from app.services.notifications import get_notification_service, notify_order_status_update
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -206,11 +208,24 @@ def update_order_status(
             detail=f"Cannot transition order from '{order.status.value}' to '{new_status.value}'",
         )
 
+    if order.status == OrderStatus.pending and new_status != OrderStatus.cancelled:
+        has_succeeded_payment = (
+            db.query(Payment)
+            .filter(Payment.order_id == order.id, Payment.status == PaymentStatus.succeeded)
+            .first()
+            is not None
+        )
+        if not has_succeeded_payment:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Order must be paid before it can be processed"
+            )
+
     if new_status == OrderStatus.cancelled and order.status in (OrderStatus.pending, OrderStatus.preparing):
         for item in order.items:
             item.medicine.stock_quantity += item.quantity
 
     order.status = new_status
+    notify_order_status_update(db, get_notification_service(), order.patient.user, order.id, new_status.value)
     db.commit()
     db.refresh(order)
     return _to_response(order)

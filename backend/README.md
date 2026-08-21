@@ -1,12 +1,11 @@
-# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4 + Phase 5)
+# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4 + Phase 5 + Phase 6)
 
 FastAPI backend covering:
 - **Phase 2**: authentication, authorization (RBAC), Patient / Doctor / Pharmacy profile management
 - **Phase 3**: medicine search, prescription upload, medicine ordering, inventory management, order tracking
 - **Phase 4**: doctor availability, appointment booking, chat/video consultation, e-prescriptions
 - **Phase 5**: admin user management, order/appointment monitoring, document verification, reports
-
-Notifications and payments are out of scope for these phases.
+- **Phase 6**: payment integration (mock gateway) and notification services (email/SMS)
 
 ## Stack
 - Python 3.11+, FastAPI, SQLAlchemy 2.x, Alembic, PostgreSQL
@@ -145,7 +144,7 @@ and login itself returns 403 for an inactive account).
 Note: pagination here is scoped to these new admin endpoints only. Broader query/index
 optimization is deferred to Phase 7 (Performance Optimization & Security).
 
-## Frontend integration additions (Frontend Phase 1)
+## Frontend integration additions (Phase 5)
 
 Small additions made to support the new `frontend/` app (see its own README):
 
@@ -164,3 +163,33 @@ Small additions made to support the new `frontend/` app (see its own README):
   `127.0.0.1:5173`). Without this, every browser-based frontend request was silently
   blocked by the browser's CORS preflight check — found by actually running the
   frontend against the API for the first time.
+
+## Payments & notifications (Phase 6)
+
+No real payment or email/SMS provider account is required. Both are built behind a
+pluggable interface (`app/services/payments.py`, `app/services/notifications.py`) with
+a **mock provider** by default — a real provider (Stripe, Twilio, SendGrid, ...) can be
+swapped in later without touching any call site.
+
+- `POST /api/v1/payments` — Patient-only. Body: `{order_id, simulate_failure?}`.
+  `simulate_failure` is a mock-only testing hook to exercise the failure path
+  deterministically. Rejects a second payment attempt once one has already succeeded
+  (400 "Order already paid"). On success, fires a `payment_receipt` notification.
+- `GET /api/v1/payments/order/{order_id}` — order's patient/pharmacy owner or admin —
+  full payment attempt history (list, newest first).
+- **Order status gate**: `PATCH /orders/{id}/status` (Phase 3) now requires a
+  `succeeded` payment before an order can leave `pending` for anything other than
+  `cancelled` (400 "Order must be paid before it can be processed" otherwise) —
+  matches the workflow doc's "Make Payment → Pharmacy Prepares Order" ordering.
+  Every successful transition also fires an `order_status_update` notification
+  (both `email` and `sms`).
+- `GET /api/v1/notifications/me` — any authenticated user — their own notification
+  log; this is the mock "inbox" used to verify a trigger actually fired.
+- `POST /api/v1/notifications/send-appointment-reminders` — Admin-only. There's no
+  background job/scheduler in this stack, so this is an explicit, idempotent endpoint
+  (meant to be hit by an external cron later, or manually now): notifies patients for
+  `confirmed` appointments starting within the next 24h that haven't been reminded yet,
+  and marks them `reminder_sent=True`. Returns `{"reminders_sent": <count>}`.
+- Booking a new appointment and uploading a prescription also fire notifications
+  (`booking_confirmation`, `prescription_uploaded`) — small one-line hooks into the
+  existing Phase 3/4 endpoints, reusing the same notification helpers.

@@ -24,6 +24,7 @@ from app.schemas.appointment import (
     ConsultationMessageResponse,
 )
 from app.schemas.prescription import PrescriptionCreate, PrescriptionResponse
+from app.services.notifications import get_notification_service, notify_booking_confirmation
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
@@ -101,6 +102,7 @@ def create_appointment(
     )
     slot.is_booked = True
     db.add(appointment)
+    notify_booking_confirmation(db, get_notification_service(), current_user, doctor.full_name)
     db.commit()
     db.refresh(appointment)
     return _to_response(appointment)

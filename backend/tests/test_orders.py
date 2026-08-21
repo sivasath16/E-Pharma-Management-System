@@ -1,4 +1,4 @@
-from tests.conftest import approved_pharmacy_token, auth_header, token_for
+from tests.conftest import approved_pharmacy_token, auth_header, pay_order, token_for
 
 
 def _create_medicine(client, pharm_token, **overrides):
@@ -221,6 +221,16 @@ def test_status_transitions_valid_and_invalid(client):
         headers=auth_header(pharm_token),
     )
     assert invalid.status_code == 400
+
+    unpaid = client.patch(
+        f"/api/v1/orders/{order['id']}/status",
+        json={"status": "preparing"},
+        headers=auth_header(pharm_token),
+    )
+    assert unpaid.status_code == 400
+
+    payment = pay_order(client, patient_token, order["id"])
+    assert payment.status_code == 201
 
     step1 = client.patch(
         f"/api/v1/orders/{order['id']}/status",

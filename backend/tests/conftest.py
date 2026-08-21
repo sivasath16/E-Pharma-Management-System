@@ -13,9 +13,11 @@ from app.models import (  # noqa: F401
     Doctor,
     DoctorAvailabilitySlot,
     Medicine,
+    Notification,
     Order,
     OrderItem,
     Patient,
+    Payment,
     Pharmacy,
     Prescription,
     User,
@@ -93,3 +95,11 @@ def approved_doctor_token(client, email="doc@example.com", password="secret123",
     doctor_user_id = user_id_from_token(doc_token)
     client.post(f"/api/v1/doctors/{doctor_user_id}/approve", headers=auth_header(admin_token))
     return doc_token
+
+
+def pay_order(client, patient_token, order_id, simulate_failure=False):
+    return client.post(
+        "/api/v1/payments",
+        json={"order_id": order_id, "simulate_failure": simulate_failure},
+        headers=auth_header(patient_token),
+    )

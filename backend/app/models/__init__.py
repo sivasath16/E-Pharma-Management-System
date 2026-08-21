@@ -12,3 +12,5 @@ from app.models.appointment import (  # noqa: F401
 )
 from app.models.prescription import Prescription  # noqa: F401
 from app.models.order import FulfillmentType, Order, OrderItem, OrderStatus  # noqa: F401
+from app.models.payment import Payment, PaymentStatus  # noqa: F401
+from app.models.notification import Notification, NotificationChannel, NotificationType  # noqa: F401

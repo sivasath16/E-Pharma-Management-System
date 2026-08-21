@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.models.prescription import Prescription
 from app.models.user import User, UserRole
 from app.schemas.prescription import PrescriptionCreate, PrescriptionResponse
+from app.services.notifications import get_notification_service, notify_prescription_uploaded
 
 router = APIRouter(prefix="/prescriptions", tags=["prescriptions"])
 
@@ -20,6 +21,7 @@ def upload_prescription(
     patient = _get_patient_or_404(db, current_user.id)
     prescription = Prescription(patient_id=patient.id, **payload.model_dump())
     db.add(prescription)
+    notify_prescription_uploaded(db, get_notification_service(), current_user)
     db.commit()
     db.refresh(prescription)
     return prescription
