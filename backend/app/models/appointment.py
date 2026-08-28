@@ -44,7 +44,7 @@ class Appointment(Base):
     slot_id: Mapped[int] = mapped_column(ForeignKey("doctor_availability_slots.id"), nullable=False, unique=True)
     consultation_mode: Mapped[ConsultationMode] = mapped_column(Enum(ConsultationMode), nullable=False)
     status: Mapped[AppointmentStatus] = mapped_column(
-        Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.pending
+        Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.pending, index=True
     )
     meeting_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)

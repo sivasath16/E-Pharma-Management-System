@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Badge,
+  Button,
   Card,
   Container,
   Group,
@@ -12,13 +13,17 @@ import {
   TextInput,
   Title,
 } from '@mantine/core'
-import { IconSearch } from '@tabler/icons-react'
+import { IconSearch, IconShoppingCartPlus } from '@tabler/icons-react'
 import { useSearchParams } from 'react-router-dom'
 import { searchMedicines } from '../../api/medicines'
+import { useAuth } from '../../auth/AuthContext'
+import { useCart } from '../../cart/CartContext'
 
 export function MedicineSearch() {
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') ?? '')
+  const { user } = useAuth()
+  const { addItem } = useCart()
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['medicines', query],
@@ -68,6 +73,17 @@ export function MedicineSearch() {
                   <Text size="xs" c={medicine.stock_quantity > 0 ? 'green' : 'red'}>
                     {medicine.stock_quantity > 0 ? `${medicine.stock_quantity} in stock` : 'Out of stock'}
                   </Text>
+                  {user?.role === 'patient' && (
+                    <Button
+                      size="xs"
+                      variant="light"
+                      leftSection={<IconShoppingCartPlus size={14} />}
+                      disabled={medicine.stock_quantity === 0}
+                      onClick={() => addItem(medicine)}
+                    >
+                      Add to Cart
+                    </Button>
+                  )}
                 </Stack>
               </Card>
             ))}

@@ -256,3 +256,42 @@ export interface ReportSummary {
   total_revenue: string
   appointments_by_status: Record<string, number>
 }
+
+// --- Payment ---
+
+export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded'
+
+export interface PaymentCreate {
+  order_id: number
+  simulate_failure?: boolean
+}
+
+export interface Payment {
+  id: number
+  order_id: number
+  amount: string
+  status: PaymentStatus
+  provider: string
+  provider_reference: string | null
+  created_at: string
+  updated_at: string
+}
+
+// --- Notification ---
+
+export type NotificationChannel = 'email' | 'sms'
+export type NotificationType =
+  | 'booking_confirmation'
+  | 'prescription_uploaded'
+  | 'payment_receipt'
+  | 'order_status_update'
+  | 'appointment_reminder'
+
+export interface Notification {
+  id: number
+  channel: NotificationChannel
+  notification_type: NotificationType
+  subject: string
+  message: string
+  sent_at: string
+}

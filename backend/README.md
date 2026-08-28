@@ -1,4 +1,4 @@
-# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4 + Phase 5 + Phase 6)
+# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4 + Phase 5 + Phase 6 + Phase 7)
 
 FastAPI backend covering:
 - **Phase 2**: authentication, authorization (RBAC), Patient / Doctor / Pharmacy profile management
@@ -6,6 +6,7 @@ FastAPI backend covering:
 - **Phase 4**: doctor availability, appointment booking, chat/video consultation, e-prescriptions
 - **Phase 5**: admin user management, order/appointment monitoring, document verification, reports
 - **Phase 6**: payment integration (mock gateway) and notification services (email/SMS)
+- **Phase 7**: performance (DB indexes), structured request logging, security headers, sanitized exception handling
 
 ## Stack
 - Python 3.11+, FastAPI, SQLAlchemy 2.x, Alembic, PostgreSQL
@@ -193,3 +194,28 @@ swapped in later without touching any call site.
 - Booking a new appointment and uploading a prescription also fire notifications
   (`booking_confirmation`, `prescription_uploaded`) — small one-line hooks into the
   existing Phase 3/4 endpoints, reusing the same notification helpers.
+
+## Performance & security (Phase 7)
+
+No rate limiting was added — there's no Redis/external infra in this stack, consistent
+with the mock-provider approach used for payments/notifications, and per-process rate
+limiting wouldn't hold up in a real multi-instance deployment anyway. Everything else:
+
+- **DB indexes** (`alembic/versions/0005_performance_indexes.py`): `orders.status`,
+  `appointments.status`, `users.role` — columns the admin/pharmacy/doctor list
+  endpoints filter on that weren't indexed before.
+- **Structured request logging** (`app/core/middleware.py`'s `RequestLoggingMiddleware`):
+  every request is logged with method, path, status code, and duration, tagged with a
+  short request id that's also returned as an `X-Request-ID` response header for
+  cross-referencing a specific client request to its log line.
+- **Security headers** (`SecurityHeadersMiddleware`): `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` on every response.
+- **Sanitized exception handling** (`app/main.py`'s global `Exception` handler): any
+  unhandled exception is logged with its full traceback server-side but returns only a
+  generic `{"detail": "Internal server error"}` to the client — no stack trace or
+  internal detail leakage.
+- **"Resolve integration issues"**: this phase's validation activity was the full-stack
+  integration pass across every remaining Phase 2–5 frontend gap (profile editing,
+  pharmacy inventory, the full appointment/consultation/e-prescription flow, and the
+  admin dashboard), verified end-to-end with Playwright against the real backend —
+  zero console/page errors, same bar as every prior phase.
