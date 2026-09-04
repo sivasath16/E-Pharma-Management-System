@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.appointment import AppointmentStatus, ConsultationMode
 
@@ -50,7 +50,7 @@ class AppointmentResponse(BaseModel):
 
 
 class ConsultationMessageCreate(BaseModel):
-    body: str
+    body: str = Field(min_length=1)
 
 
 class ConsultationMessageResponse(BaseModel):

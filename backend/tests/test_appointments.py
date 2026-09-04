@@ -209,6 +209,29 @@ def test_messages_only_after_confirmed_and_participants_only(client):
     assert len(messages.json()) == 1
 
 
+def test_empty_message_body_rejected(client):
+    doc_token, doctor_id, slot = _doctor_with_slot(client)
+    patient_token = _patient_token(client)
+
+    appointment = client.post(
+        "/api/v1/appointments",
+        json={"doctor_id": doctor_id, "slot_id": slot["id"], "consultation_mode": "chat"},
+        headers=auth_header(patient_token),
+    ).json()
+    client.patch(
+        f"/api/v1/appointments/{appointment['id']}/status",
+        json={"status": "confirmed"},
+        headers=auth_header(doc_token),
+    )
+
+    response = client.post(
+        f"/api/v1/appointments/{appointment['id']}/messages",
+        json={"body": ""},
+        headers=auth_header(patient_token),
+    )
+    assert response.status_code == 422
+
+
 def test_eprescription_issued_and_visible_to_patient(client):
     doc_token, doctor_id, slot = _doctor_with_slot(client)
     patient_token = _patient_token(client)

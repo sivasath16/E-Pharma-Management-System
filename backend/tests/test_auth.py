@@ -49,3 +49,8 @@ def test_get_me_returns_current_user(client):
 def test_get_me_requires_auth(client):
     response = client.get("/api/v1/auth/me")
     assert response.status_code == 401
+
+
+def test_register_short_password_rejected(client):
+    response = register_user(client, "shortpw@example.com", "abc12", "patient")
+    assert response.status_code == 422

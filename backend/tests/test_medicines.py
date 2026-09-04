@@ -76,3 +76,27 @@ def test_other_pharmacy_cannot_update_medicine(client):
         headers=auth_header(other_token),
     )
     assert response.status_code == 403
+
+
+def test_negative_price_rejected(client):
+    token = approved_pharmacy_token(client)
+    response = _create_medicine(client, token, price="-5.00")
+    assert response.status_code == 422
+
+
+def test_negative_stock_quantity_rejected(client):
+    token = approved_pharmacy_token(client)
+    response = _create_medicine(client, token, stock_quantity=-10)
+    assert response.status_code == 422
+
+
+def test_update_negative_price_rejected(client):
+    token = approved_pharmacy_token(client)
+    created = _create_medicine(client, token).json()
+
+    response = client.put(
+        f"/api/v1/medicines/{created['id']}",
+        json={"price": "-1.00"},
+        headers=auth_header(token),
+    )
+    assert response.status_code == 422

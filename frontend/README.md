@@ -43,6 +43,23 @@ npm run build
 
 Runs `tsc -b` (type-check) then `vite build`.
 
+## E2E tests (Phase 8)
+
+```bash
+npx playwright install chromium   # first time only
+npm run test:e2e
+```
+
+Requires the backend + local PostgreSQL already running separately (same
+precondition as `npm run dev`) — `playwright.config.ts` only auto-starts the
+frontend dev server, not the backend. `e2e/` covers auth (register/login/role
+guards), the patient order+payment flow (including the payment gate and a
+simulated failure), the full appointment lifecycle (booking → confirm → chat →
+complete → e-prescription) in both chat and video mode, pharmacy inventory and
+order fulfillment, and admin approvals/user management. This formalizes what had
+previously only been verified via one-off scripts during development into a
+permanent, re-runnable suite.
+
 ## Structure
 
 - `src/api/` — one typed module per backend router (`auth.ts`, `patients.ts`,

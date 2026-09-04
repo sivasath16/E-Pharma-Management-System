@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import UserRole
 
@@ -6,7 +6,7 @@ from app.models.user import UserRole
 class RegisterRequest(BaseModel):
     email: EmailStr
     phone: str | None = None
-    password: str
+    password: str = Field(min_length=6)
     role: UserRole
     full_name: str | None = None
     # pharmacy-only

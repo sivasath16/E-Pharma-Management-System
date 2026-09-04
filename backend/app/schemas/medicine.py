@@ -1,15 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MedicineCreate(BaseModel):
     name: str
     category: str | None = None
     description: str | None = None
-    price: Decimal
-    stock_quantity: int = 0
+    price: Decimal = Field(gt=0)
+    stock_quantity: int = Field(default=0, ge=0)
     requires_prescription: bool = False
 
 
@@ -17,8 +17,8 @@ class MedicineUpdate(BaseModel):
     name: str | None = None
     category: str | None = None
     description: str | None = None
-    price: Decimal | None = None
-    stock_quantity: int | None = None
+    price: Decimal | None = Field(default=None, gt=0)
+    stock_quantity: int | None = Field(default=None, ge=0)
     requires_prescription: bool | None = None
 
 
