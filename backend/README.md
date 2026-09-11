@@ -1,4 +1,4 @@
-# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4 + Phase 5 + Phase 6 + Phase 7 + Phase 8)
+# E-Pharma Management System — Backend (Phase 2 + Phase 3 + Phase 4 + Phase 5 + Phase 6 + Phase 7 + Phase 8 + Phase 9)
 
 FastAPI backend covering:
 - **Phase 2**: authentication, authorization (RBAC), Patient / Doctor / Pharmacy profile management
@@ -8,6 +8,7 @@ FastAPI backend covering:
 - **Phase 6**: payment integration (mock gateway) and notification services (email/SMS)
 - **Phase 7**: performance (DB indexes), structured request logging, security headers, sanitized exception handling
 - **Phase 8**: input-validation bug fixes and a cross-module integration test
+- **Phase 9**: containerized (`Dockerfile`), deployment-validated via Docker Compose, API/technical/deployment/source docs — see [`../docs/`](../docs/) and [`../DEPLOYMENT.md`](../DEPLOYMENT.md)
 
 ## Stack
 - Python 3.11+, FastAPI, SQLAlchemy 2.x, Alembic, PostgreSQL

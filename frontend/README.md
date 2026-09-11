@@ -2,7 +2,9 @@
 
 React + Vite + TypeScript frontend for the E-Pharma Management System backend. All
 Patient/Doctor/Pharmacy/Admin functionality the backend supports (Phases 2–6) now has
-a working screen.
+a working screen. Phase 9 adds a production build (`Dockerfile` + nginx) validated
+via the root [`docker-compose.yml`](../docker-compose.yml) — see
+[`../DEPLOYMENT.md`](../DEPLOYMENT.md).
 
 ## Stack
 
